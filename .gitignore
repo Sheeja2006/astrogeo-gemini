@@ -1,10 +1,13 @@
 venv/
 __pycache__/
 *.pyc
+*.pyo
 .env
 *.env
 frontend/node_modules/
 frontend/dist/
+backend/embeddings/*.index
+backend/data/*.csv
 .DS_Store
-*.index
-*.json.bak
+*.db
+*.sqlite

@@ -1,38 +1,42 @@
-const SUGGESTIONS = [
-  { icon: '🏔️', text: 'What is the tallest mountain in the world?' },
-  { icon: '🚀', text: 'Tell me about the Apollo 11 mission' },
-  { icon: '🌍', text: 'Which countries border France?' },
-  { icon: '🪐', text: 'How many moons does Jupiter have?' },
-  { icon: '🌊', text: 'What is the deepest ocean in the world?' },
-  { icon: '☀️', text: 'What causes a solar flare?' },
-  { icon: '🌋', text: 'What are the most active volcanoes?' },
-  { icon: '🌌', text: 'What is a black hole?' },
+const ALL_SUGGESTIONS = [
+  { icon: '🏔️', text: 'What is the tallest mountain in the world?',   topic: 'Geography' },
+  { icon: '🌍', text: 'Which countries border France?',                topic: 'Geography' },
+  { icon: '🌊', text: 'What is the deepest ocean in the world?',       topic: 'Geography' },
+  { icon: '🌋', text: 'What are the most active volcanoes on Earth?',  topic: 'Disasters' },
+  { icon: '🏜️', text: 'What is the largest desert in the world?',     topic: 'Geography' },
+  { icon: '🌐', text: 'Which is the longest river in the world?',      topic: 'Geography' },
+  { icon: '🚀', text: 'Tell me about the Apollo 11 mission',           topic: 'Space'     },
+  { icon: '🪐', text: 'How many moons does Jupiter have?',             topic: 'Planets'   },
+  { icon: '☀️', text: 'What causes a solar flare?',                   topic: 'Space'     },
+  { icon: '🌌', text: 'What is a black hole?',                         topic: 'Space'     },
+  { icon: '🛸', text: 'What was the first satellite in space?',        topic: 'Space'     },
+  { icon: '🌑', text: 'How was the Moon formed?',                      topic: 'Planets'   },
+  { icon: '💫', text: 'How many galaxies are in the universe?',        topic: 'Space'     },
+  { icon: '🌪️', text: 'What causes earthquakes?',                     topic: 'Disasters' },
 ];
 
-export default function SuggestionChips({ onSelect }) {
+export default function SuggestionChips({ onSelect, activeTab = 'All' }) {
+  const filtered = activeTab === 'All'
+    ? ALL_SUGGESTIONS
+    : ALL_SUGGESTIONS.filter(s => s.topic === activeTab);
+
   return (
     <div style={{
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '8px',
-      justifyContent: 'center',
+      display: 'flex', flexWrap: 'wrap',
+      gap: '8px', justifyContent: 'center',
       padding: '0 12px',
     }}>
-      {SUGGESTIONS.map((s, i) => (
+      {filtered.map((s, i) => (
         <button
           key={i}
           onClick={() => onSelect(s.text)}
           style={{
             background: 'rgba(255,255,255,0.05)',
             border: '1px solid rgba(167,139,250,0.25)',
-            borderRadius: '20px',
-            padding: '6px 14px',
-            color: '#b8a9d9',
-            fontSize: '12px',
+            borderRadius: '20px', padding: '6px 14px',
+            color: '#b8a9d9', fontSize: '12px',
             cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
+            display: 'flex', alignItems: 'center', gap: '6px',
             transition: 'all 0.2s',
           }}
           onMouseEnter={e => {

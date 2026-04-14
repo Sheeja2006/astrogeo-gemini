@@ -4,7 +4,7 @@ import SpaceBackground from './components/SpaceBackground';
 import SuggestionChips from './components/SuggestionChips';
 import MessageBubble from './components/MessageBubble';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = 'http://localhost:5000';
 
 const TOPIC_TABS = [
   { label: 'All',       icon: '🌌' },
@@ -14,17 +14,29 @@ const TOPIC_TABS = [
   { label: 'Disasters', icon: '🌋' },
 ];
 
+function getTime() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function App() {
   const [messages, setMessages] = useState([{
     role: 'bot',
-    text: "Hello, explorer! I'm AstroGeo AI powered by Gemini. Ask me anything about Earth's geography or the cosmos — countries, rivers, mountains, space missions, planets, black holes, and more!",
+    text: "Hello, explorer! I'm AstroGeo AI powered by LLaMA 3.3. Ask me anything about Earth's geography or the cosmos — countries, rivers, mountains, space missions, planets, black holes, and more!",
+    time: getTime(),
   }]);
-  const [input, setInput]           = useState('');
-  const [loading, setLoading]       = useState(false);
-  const [activeTab, setActiveTab]   = useState('All');
-  const [history, setHistory]       = useState([]);
-  const bottomRef                   = useRef(null);
-  const inputRef                    = useRef(null);
+  const [input, setInput]         = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [activeTab, setActiveTab] = useState('All');
+  const [history, setHistory]     = useState([]);
+  const [showChips, setShowChips] = useState(true);
+  const [errorMsg, setErrorMsg]   = useState('');
+  const bottomRef                 = useRef(null);
+  const inputRef                  = useRef(null);
+
+  // Auto focus input on load
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,20 +46,33 @@ export default function App() {
     const query = (text || input).trim();
     if (!query || loading) return;
 
+    setErrorMsg('');
+    setShowChips(false);
     const currentHistory = [...history];
+
     setMessages(prev => [
       ...prev,
-      { role: 'user', text: query },
+      { role: 'user', text: query, time: getTime() },
       { role: 'bot', isLoading: true, text: '' },
     ]);
     setInput('');
     setLoading(true);
+
+    // Timeout after 30 seconds
+    const timeout = setTimeout(() => {
+      setMessages(prev => [
+        ...prev.slice(0, -1),
+        { role: 'bot', text: 'Request timed out. The server is taking too long. Please try again.', time: getTime() },
+      ]);
+      setLoading(false);
+    }, 30000);
 
     try {
       const res = await axios.post(`${API_URL}/chat`, {
         message: query,
         history: currentHistory,
       });
+      clearTimeout(timeout);
       const reply = res.data.reply;
       setHistory(prev => [
         ...prev,
@@ -56,12 +81,21 @@ export default function App() {
       ]);
       setMessages(prev => [
         ...prev.slice(0, -1),
-        { role: 'bot', text: reply },
+        { role: 'bot', text: reply, time: getTime() },
       ]);
-    } catch {
+    } catch (err) {
+      clearTimeout(timeout);
+      let errText = 'Unable to reach the backend. Make sure Flask is running on port 5000.';
+      if (err.response?.status === 429) {
+        errText = 'Rate limit reached. Please wait a moment and try again.';
+      } else if (err.response?.status === 500) {
+        errText = 'Server error. Check your Flask terminal for details.';
+      } else if (err.code === 'ERR_NETWORK') {
+        errText = 'Cannot connect to backend. Make sure Flask is running on port 5000.';
+      }
       setMessages(prev => [
         ...prev.slice(0, -1),
-        { role: 'bot', text: 'Unable to reach the backend. Make sure Flask is running on port 5000.' },
+        { role: 'bot', text: errText, time: getTime() },
       ]);
     } finally {
       setLoading(false);
@@ -73,8 +107,12 @@ export default function App() {
     setMessages([{
       role: 'bot',
       text: 'Chat cleared! Ask me anything about geography or space.',
+      time: getTime(),
     }]);
     setHistory([]);
+    setShowChips(true);
+    setErrorMsg('');
+    inputRef.current?.focus();
   };
 
   return (
@@ -88,12 +126,11 @@ export default function App() {
         padding: '20px 16px',
       }}>
 
-        {/* ── Header ── */}
+        {/* Header */}
         <header style={{
           width: '100%', maxWidth: '760px',
           display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '20px',
+          justifyContent: 'space-between', marginBottom: '20px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{
@@ -111,12 +148,12 @@ export default function App() {
                 Astro<span style={{ color: '#a78bfa' }}>Geo</span> AI
                 <span style={{
                   fontSize: '10px', marginLeft: '8px',
-                  background: 'rgba(66,133,244,0.2)',
-                  color: '#4285f4', padding: '2px 8px',
+                  background: 'rgba(99,102,241,0.2)',
+                  color: '#818cf8', padding: '2px 8px',
                   borderRadius: '10px',
-                  border: '1px solid rgba(66,133,244,0.3)',
+                  border: '1px solid rgba(99,102,241,0.3)',
                   verticalAlign: 'middle',
-                }}>Gemini</span>
+                }}>LLaMA 3.3</span>
               </h1>
               <p style={{ color: '#7c6fa0', fontSize: '11px', margin: 0 }}>
                 Earth · Space · Intelligence
@@ -148,27 +185,27 @@ export default function App() {
           </div>
         </header>
 
-        {/* ── Topic Tabs ── */}
+        {/* Topic Tabs — now functional */}
         <div style={{
           display: 'flex', gap: '8px',
-          marginBottom: '16px',
-          flexWrap: 'wrap', justifyContent: 'center',
+          marginBottom: '16px', flexWrap: 'wrap',
+          justifyContent: 'center',
         }}>
           {TOPIC_TABS.map(tab => (
             <button
               key={tab.label}
-              onClick={() => setActiveTab(tab.label)}
+              onClick={() => {
+                setActiveTab(tab.label);
+                setShowChips(true);
+              }}
               style={{
                 background: activeTab === tab.label
-                  ? 'rgba(167,139,250,0.2)'
-                  : 'rgba(255,255,255,0.04)',
+                  ? 'rgba(167,139,250,0.2)' : 'rgba(255,255,255,0.04)',
                 border: `1px solid ${activeTab === tab.label
-                  ? 'rgba(167,139,250,0.6)'
-                  : 'rgba(255,255,255,0.1)'}`,
+                  ? 'rgba(167,139,250,0.6)' : 'rgba(255,255,255,0.1)'}`,
                 borderRadius: '20px', padding: '6px 16px',
                 color: activeTab === tab.label ? '#e2d9f3' : '#7c6fa0',
-                fontSize: '12px', cursor: 'pointer',
-                transition: 'all 0.2s',
+                fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s',
               }}
             >
               {tab.icon} {tab.label}
@@ -176,7 +213,7 @@ export default function App() {
           ))}
         </div>
 
-        {/* ── Chat Window ── */}
+        {/* Chat Window */}
         <div style={{
           width: '100%', maxWidth: '760px',
           background: 'rgba(3,0,30,0.78)',
@@ -187,8 +224,7 @@ export default function App() {
           height: 'calc(100vh - 240px)',
           minHeight: '420px',
         }}>
-
-          {/* Messages area */}
+          {/* Messages */}
           <div style={{
             flex: 1, overflowY: 'auto',
             padding: '20px 16px',
@@ -198,16 +234,16 @@ export default function App() {
               <MessageBubble key={i} message={msg} />
             ))}
 
-            {/* Suggestion chips — shown only at start */}
-            {messages.length === 1 && (
-              <div style={{ marginTop: '12px' }}>
+            {/* Suggestion chips */}
+            {showChips && (
+              <div style={{ marginTop: '8px' }}>
                 <p style={{
                   color: '#7c6fa0', fontSize: '12px',
-                  textAlign: 'center', marginBottom: '14px',
+                  textAlign: 'center', marginBottom: '12px',
                 }}>
                   ✨ Try asking one of these:
                 </p>
-                <SuggestionChips onSelect={sendMessage} />
+                <SuggestionChips onSelect={sendMessage} activeTab={activeTab} />
               </div>
             )}
 
@@ -231,39 +267,34 @@ export default function App() {
                     sendMessage();
                   }
                 }}
-                placeholder="Ask about space or Earth geography..."
+                placeholder={loading
+                  ? 'Waiting for response...'
+                  : 'Ask about space or Earth geography...'}
                 disabled={loading}
                 style={{
                   flex: 1,
                   background: 'rgba(255,255,255,0.06)',
                   border: '1px solid rgba(167,139,250,0.3)',
-                  borderRadius: '24px',
-                  padding: '11px 20px',
-                  color: '#e2d9f3',
-                  fontSize: '14px',
-                  outline: 'none',
+                  borderRadius: '24px', padding: '11px 20px',
+                  color: '#e2d9f3', fontSize: '14px', outline: 'none',
                   transition: 'border-color 0.2s',
+                  opacity: loading ? 0.6 : 1,
                 }}
               />
               <button
                 onClick={() => sendMessage()}
                 disabled={loading || !input.trim()}
                 style={{
-                  width: '46px', height: '46px',
-                  borderRadius: '50%',
+                  width: '46px', height: '46px', borderRadius: '50%',
                   background: loading || !input.trim()
                     ? 'rgba(109,40,217,0.25)'
                     : 'linear-gradient(135deg, #6d28d9, #a78bfa)',
                   border: 'none',
                   cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '20px',
-                  transition: 'all 0.2s',
-                  flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '20px', transition: 'all 0.2s', flexShrink: 0,
                   boxShadow: loading || !input.trim()
-                    ? 'none'
-                    : '0 0 16px rgba(167,139,250,0.4)',
+                    ? 'none' : '0 0 16px rgba(167,139,250,0.4)',
                 }}
               >
                 {loading ? '⏳' : '🚀'}
@@ -273,7 +304,7 @@ export default function App() {
               color: '#4a3f6b', fontSize: '11px',
               marginTop: '8px', textAlign: 'center',
             }}>
-              Powered by LLaMA 3 · Groq · {messages.filter(m => m.role === 'user').length} questions asked
+              LLaMA 3.3 · Groq · {messages.filter(m => m.role === 'user').length} questions asked
             </p>
           </div>
         </div>
@@ -292,6 +323,9 @@ export default function App() {
         input:focus {
           border-color: rgba(167,139,250,0.6) !important;
           box-shadow: 0 0 0 3px rgba(167,139,250,0.08);
+        }
+        @media (max-width: 600px) {
+          header { flex-wrap: wrap; gap: 10px; }
         }
       `}</style>
     </div>
