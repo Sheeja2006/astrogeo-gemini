@@ -4,7 +4,7 @@ import SpaceBackground from './components/SpaceBackground';
 import SuggestionChips from './components/SuggestionChips';
 import MessageBubble from './components/MessageBubble';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const TOPIC_TABS = [
   { label: 'All',       icon: '🌌' },
